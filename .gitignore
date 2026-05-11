@@ -1,0 +1,9 @@
+.env
+cookies.json
+.venv/
+__pycache__/
+*.mp3
+*.mp4
+*.DS_Store
+*.txt
+uv.lock

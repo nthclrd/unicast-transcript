@@ -1,0 +1,17 @@
+[project]
+name = "unicast-transcriber"
+version = "0.1.0"
+description = "Télécharge et transcrit les podcasts Unicast (ULiège)"
+requires-python = ">=3.12"
+dependencies = [
+    "deepgram-sdk",
+    "playwright",
+    "python-dotenv",
+    "requests",
+    "yt-dlp",
+]
+
+[project.scripts]
+auth       = "auth:login"
+unicast    = "unicast:main"
+transcribe = "transcribe:main"
