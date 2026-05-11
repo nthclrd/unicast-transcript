@@ -11,6 +11,10 @@ Télécharge et transcrit automatiquement les podcasts de cours depuis [Unicast 
 # macOS
 brew install uv ffmpeg
 
+# Linux (Debian/Ubuntu)
+sudo apt update && sudo apt install ffmpeg
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Windows
 winget install astral-sh.uv
 winget install Gyan.FFmpeg
