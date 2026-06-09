@@ -38,7 +38,7 @@ def _get_client() -> DeepgramClient:
     return DeepgramClient(api_key=api_key)
 
 
-def transcribe(audio_path: Path) -> Path:
+def transcribe(audio_path: Path, language: str = "en") -> Path:
     """Transcrit un fichier audio et retourne le chemin du .txt généré."""
     if audio_path.suffix.lower() == ".mp4":
         mp3_path = _convert_to_mp3(audio_path)
@@ -50,7 +50,7 @@ def transcribe(audio_path: Path) -> Path:
         response = client.listen.v1.media.transcribe_file(
             request=f.read(),
             model="nova-3",
-            language="fr",
+            language=language,
             request_options={"timeout_in_seconds": 600, "max_retries": 2},
         )
 
@@ -64,6 +64,8 @@ def transcribe(audio_path: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("input", help="Fichier MP3/MP4 ou dossier contenant des MP3/MP4")
+    parser.add_argument("--language", "-l", default="en",
+                        help="Langue de l'audio (ex: en, fr, multi). Défaut: en")
     args = parser.parse_args()
 
     target = Path(args.input)
@@ -83,7 +85,7 @@ def main() -> None:
     for i, f in enumerate(files, 1):
         print(f"[{i}/{len(files)}] {f.name}")
         try:
-            transcribe(f)
+            transcribe(f, language=args.language)
         except Exception as e:
             print(f"  Erreur : {e}")
 

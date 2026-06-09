@@ -50,6 +50,26 @@ DEEPGRAM_API_KEY=...          # https://console.deepgram.com/ (compte gratuit)
 
 ## Utilisation
 
+### Méthode recommandée : tout-en-un
+
+Une seule commande, entièrement interactive (connexion, téléchargement, transcription) :
+
+```bash
+uv run python run.py
+```
+
+Le script guide pas à pas :
+
+1. **Connexion** — détectée automatiquement, sinon lancée pour toi (identifiants dans `.env`).
+2. **URL du cours** — collée quand on te la demande.
+3. **Sélection des podcasts** — liste numérotée, syntaxe `1,3,5-7 | 2026 | all`.
+4. **Dossier de sortie** — proposé d'après le code de cours (ex. `./INFO0902`), modifiable.
+5. **Langue** — menu (`fr`, `en`, `multi`, `nl`, `de`, `es`) ou n'importe quel code Deepgram tapé à la main.
+
+Les podcasts sont téléchargés puis transcrits dans la foulée ; chaque transcript `.txt` est sauvegardé à côté du `.mp3`.
+
+> Les étapes ci-dessous restent disponibles si tu préfères lancer chaque script séparément.
+
 ### 1. Connexion
 
 À faire une seule fois (ou si la session expire) :
@@ -99,6 +119,14 @@ uv run python transcribe.py ./cours/
 Le transcript est sauvegardé à côté du fichier audio avec l'extension `.txt`.
 
 ## Workflow typique
+
+Le plus simple — tout en une commande interactive :
+
+```bash
+uv run python run.py
+```
+
+Ou en lançant chaque étape manuellement :
 
 ```bash
 uv run python auth.py
