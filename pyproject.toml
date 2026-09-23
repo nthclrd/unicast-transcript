@@ -5,9 +5,11 @@ description = "Télécharge et transcrit les podcasts Unicast (ULiège)"
 requires-python = ">=3.12"
 dependencies = [
     "deepgram-sdk",
+    "fastapi>=0.141.1",
     "playwright",
     "python-dotenv",
     "requests",
+    "uvicorn>=0.53.0",
     "yt-dlp",
 ]
 

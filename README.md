@@ -1,135 +1,122 @@
 # Unicast Transcriber
 
-Télécharge et transcrit automatiquement les podcasts de cours depuis [Unicast ULiège](https://my.unicast.uliege.be).
+Télécharge et transcrit automatiquement les podcasts de cours depuis [Unicast ULiège](https://my.unicast.uliege.be), depuis une interface web locale.
 
-## Prérequis
+## 1. Installer les prérequis (une seule fois)
 
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) — gestionnaire de paquets Python
-- [ffmpeg](https://ffmpeg.org/) — conversion audio (MP4 → MP3)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) : lance le programme et installe ses dépendances Python
+- [ffmpeg](https://ffmpeg.org/) : conversion audio
 
 ```bash
 # macOS
 brew install uv ffmpeg
 
+# Windows (PowerShell)
+winget install astral-sh.uv
+winget install Gyan.FFmpeg
+
 # Linux (Debian/Ubuntu)
 sudo apt update && sudo apt install ffmpeg
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows
-winget install astral-sh.uv
-winget install Gyan.FFmpeg
 ```
 
-## Installation
+Puis récupère le projet :
 
 ```bash
-git clone <repo>
-cd unicast-transcriber
-
-# Installer les dépendances
-uv sync
-
-# Installer le navigateur pour la connexion automatique
-uv run playwright install chromium
+git clone https://github.com/nthclrd/unicast-transcript.git
+cd unicast-transcript
 ```
 
-## Configuration
+> Pas besoin de Node.js : l'interface est déjà compilée dans `frontend/dist`.
 
-Copie le fichier `.env.example` et remplis tes identifiants :
+## 2. Lancer l'application
+
+- **Windows** : double-clic sur `start.bat`
+- **macOS** : double-clic sur `start.command` (au premier lancement : clic droit, puis **Ouvrir**)
+- **Linux** : `./start.command` dans un terminal
+- **N'importe où** : `uv run python server.py`
+
+Le premier lancement prend une minute (installation des dépendances et du navigateur de connexion). Ton navigateur s'ouvre ensuite sur **http://127.0.0.1:8000**. Garde la fenêtre du terminal ouverte tant que tu utilises l'application.
+
+## 3. Utilisation
+
+1. **Réglages** (s'ouvrent tout seuls au premier lancement) : ton matricule ULiège, ton mot de passe et une clé API [Deepgram](https://console.deepgram.com/) (compte gratuit, nécessaire seulement pour la transcription).
+2. **Cours** : clique sur un de tes cours. La liste vient directement de ta page « Mes cours » Unicast. Tu peux aussi coller l'URL d'une page de cours.
+3. **Podcasts** : coche ceux à traiter. Tu peux filtrer par titre ou par date, ou tout sélectionner.
+4. **Options** : dossier de sortie (par défaut `./CODE_DU_COURS`), langue du cours, et transcription activée ou non.
+5. **Lancer** : suis la progression. À la fin, **Voir le texte** affiche le transcript et **Ouvrir le dossier** ouvre les fichiers.
+
+Chaque podcast donne un `.mp3`, plus un `.txt` avec le transcript si la transcription est activée.
+
+### Où sont stockées mes infos ?
+
+Tout reste sur ton ordinateur. Les identifiants et la clé Deepgram sont dans le fichier `.env`, et la session Unicast dans `cookies.json`. Les deux sont ignorés par git. Le serveur écoute uniquement sur `127.0.0.1`, il n'est pas accessible depuis le réseau.
+
+### Problèmes fréquents
+
+| Message | Solution |
+|---------|----------|
+| « Cours introuvable (500) » | L'URL est fausse, ou tu n'es pas inscrit à ce cours. Choisis-le plutôt dans la liste. |
+| « Aucun podcast publié pour ce cours » | Le cours n'a encore aucun enregistrement sur Unicast. |
+| Échec de la connexion | Vérifie ton matricule et ton mot de passe dans **Réglages**, puis **Se reconnecter**. |
+| « Clé Deepgram manquante » | Ajoute la clé dans **Réglages**, ou décoche la transcription. |
+| `yt-dlp` / `ffmpeg` introuvable | Réinstalle ffmpeg (étape 1) puis relance l'application. |
+
+La session Unicast expire régulièrement. L'application se reconnecte automatiquement avec tes identifiants.
+
+---
+
+## Utilisation en ligne de commande (avancé)
+
+Les scripts d'origine restent disponibles. Configure d'abord `.env` à la main :
 
 ```bash
 cp .env.example .env
+uv sync
+uv run playwright install chromium
 ```
 
 ```env
-ULIEGE_USER=s1234567          # ton matricule ULiège
+ULIEGE_USER=s1234567
 ULIEGE_PASS=ton_mot_de_passe
-
-DEEPGRAM_API_KEY=...          # https://console.deepgram.com/ (compte gratuit)
+DEEPGRAM_API_KEY=...
 ```
 
-## Utilisation
-
-### Méthode recommandée : tout-en-un
-
-Une seule commande, entièrement interactive (connexion, téléchargement, transcription) :
+**Tout-en-un interactif** (connexion, sélection, téléchargement, transcription) :
 
 ```bash
 uv run python run.py
 ```
 
-Le script guide pas à pas :
-
-1. **Connexion** — détectée automatiquement, sinon lancée pour toi (identifiants dans `.env`).
-2. **URL du cours** — collée quand on te la demande.
-3. **Sélection des podcasts** — liste numérotée, syntaxe `1,3,5-7 | 2026 | all`.
-4. **Dossier de sortie** — proposé d'après le code de cours (ex. `./INFO0902`), modifiable.
-5. **Langue** — menu (`fr`, `en`, `multi`, `nl`, `de`, `es`) ou n'importe quel code Deepgram tapé à la main.
-
-Les podcasts sont téléchargés puis transcrits dans la foulée ; chaque transcript `.txt` est sauvegardé à côté du `.mp3`.
-
-> Les étapes ci-dessous restent disponibles si tu préfères lancer chaque script séparément.
-
-### 1. Connexion
-
-À faire une seule fois (ou si la session expire) :
+**Étape par étape** :
 
 ```bash
-uv run python auth.py
+uv run python auth.py                                                    # connexion
+uv run python unicast.py "https://my.unicast.uliege.be/mes_cours/INFO0902-A-a" -o ./info0902/
+uv run python transcribe.py ./info0902/ --language fr                     # fichier ou dossier MP3/MP4
 ```
 
-### 2. Télécharger des podcasts
-
-```bash
-uv run python unicast.py "https://my.unicast.uliege.be/mes_cours/INFO0902-A-a"
-
-# Avec un dossier de sortie
-uv run python unicast.py "https://my.unicast.uliege.be/mes_cours/INFO0902-A-a" -o ./cours/
-```
-
-Une liste interactive s'affiche :
-
-```
-31 podcast(s) disponibles :
-
-    1.  [06/02/2026]  INFO0902 - Introduction
-    2.  [13/02/2026]  INFO0902 - Complexité (partie 1)
-  ...
-
-Sélection (ex: 1,3,5-7  |  2026  |  all) :
-```
+Syntaxe de sélection dans le terminal :
 
 | Syntaxe | Résultat |
 |---------|----------|
 | `1,3,5` | podcasts 1, 3 et 5 |
 | `3-7`   | podcasts 3 à 7 |
 | `2026`  | tous ceux de l'année 2026 |
-| `all`   | tout télécharger |
+| `all`   | tout |
 
-### 3. Transcrire
+## Développement de l'interface
 
-```bash
-# Un seul fichier (MP3 ou MP4)
-uv run python transcribe.py cours.mp3
-
-# Tout un dossier
-uv run python transcribe.py ./cours/
-```
-
-Le transcript est sauvegardé à côté du fichier audio avec l'extension `.txt`.
-
-## Workflow typique
-
-Le plus simple — tout en une commande interactive :
+Frontend : Vite, React, Tailwind et [shadcn/ui](https://ui.shadcn.com/), dans `frontend/`. Backend : FastAPI (`server.py`), qui réutilise `auth.py`, `unicast.py` et `transcribe.py`.
 
 ```bash
-uv run python run.py
+# Terminal 1 : API
+uv run python server.py
+
+# Terminal 2 : frontend avec rechargement à chaud (proxy /api vers le port 8000)
+cd frontend
+pnpm install
+pnpm dev
 ```
 
-Ou en lançant chaque étape manuellement :
-
-```bash
-uv run python auth.py
-uv run python unicast.py "https://my.unicast.uliege.be/mes_cours/INFO0902-A-a" -o ./info0902/
-uv run python transcribe.py ./info0902/
-```
+Après une modification du frontend, recompile avec `pnpm build` et versionne `frontend/dist` : les utilisateurs n'ont pas Node.

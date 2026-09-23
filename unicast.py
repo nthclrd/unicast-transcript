@@ -18,6 +18,7 @@ Sélection:
 """
 
 import argparse
+import html as html_lib
 import re
 import shutil
 import subprocess
@@ -35,24 +36,55 @@ def _headers(cookies: str) -> dict:
     return {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/135.0", "Cookie": cookies}
 
 
+def _session_ok(r: requests.Response) -> bool:
+    # Session expirée : Unicast redirige vers idp.uliege.be qui répond 200.
+    return r.status_code == 200 and "idp.uliege.be" not in r.url
+
+
 def _fetch_html(url: str) -> tuple[str, str] | tuple[None, None]:
     cookies = auth.load_cookies()
-    if not cookies:
-        print("Pas de session. Lance d'abord: python auth.py")
-        return None, None
-
-    r = requests.get(url, headers=_headers(cookies))
-    if r.status_code != 200:
-        print("Session expirée, reconnexion...")
-        auth.login()
+    r = requests.get(url, headers=_headers(cookies)) if cookies else None
+    if r is None or not _session_ok(r):
+        print("Session expirée, reconnexion..." if cookies else "Pas de session, connexion...")
+        if not auth.login():
+            return None, None
         cookies = auth.load_cookies()
         r = requests.get(url, headers=_headers(cookies))
 
-    if r.status_code != 200:
-        print(f"Erreur {r.status_code} sur {url}")
+    if r.status_code in (404, 500) and "idp.uliege.be" not in r.url:
+        # Unicast répond 500 pour un cours inexistant ou auquel on n'est pas inscrit.
+        print(f"Cours introuvable ({r.status_code}) : vérifie l'URL et que tu es inscrit à ce cours.")
+        return None, None
+    if not _session_ok(r):
+        print(f"Erreur {r.status_code} sur {r.url}")
         return None, None
 
     return r.text, cookies
+
+
+def list_courses() -> list[dict] | None:
+    """Retourne les cours de l'utilisateur (None si la page est inaccessible).
+    Chaque cours: {id, title, professor, podcasts, url}."""
+    html, _ = _fetch_html(f"{BASE_URL}/mes_cours")
+    if html is None:
+        return None
+    courses = []
+    for block in re.findall(r'<article class="card list-cards__item.*?</article>', html, re.DOTALL):
+        cid = re.search(r'data-id="([^"]+)"', block)
+        href = re.search(r'href="([^"]*/mes_cours/[^"]+)"', block)
+        if not cid or not href:
+            continue
+        title = re.search(r'data-title="([^"]*)"', block)
+        prof = re.search(r'ui-id="card-course-professor">.*?</span>\s*([^<]*?)\s*</li>', block, re.DOTALL)
+        count = re.search(r'(\d+)\s*podcast', block)
+        courses.append({
+            "id": cid.group(1),
+            "title": html_lib.unescape(title.group(1)) if title else cid.group(1),
+            "professor": html_lib.unescape(prof.group(1)) if prof else "",
+            "podcasts": int(count.group(1)) if count else 0,
+            "url": href.group(1),
+        })
+    return courses
 
 
 def list_podcasts(course_url: str) -> tuple[str, list[dict], str]:
